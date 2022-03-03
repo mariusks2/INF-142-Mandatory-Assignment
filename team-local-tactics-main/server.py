@@ -1,34 +1,72 @@
+from multiprocessing import connection
 import socket
-import os
-from _thread import *
+import traceback
+from threading import Thread
 
-ServerSocket = socket.socket()
-host = '127.0.0.1'
-port = 5550
-ThreadCount = 0
-try:
-    ServerSocket.bind((host, port))
-except socket.error as e:
-    print(str(e))
+from cgitb import reset
+from rich import print
+from rich.prompt import Prompt
+from rich.table import Table
 
-print('Waiting for a Connection..')
-ServerSocket.listen(5)
+from champlistloader import load_some_champs
+from core import Champion, Match, Shape, Team
 
 
-def threaded_client(connection):
-    connection.send(str.encode('Welcome to the Server'))
+
+def serverStart():
+    start_server()
+
+
+def start_server():
+    host = "127.0.0.1"
+    port = 5550   
+
+    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    print("Socket created")
+
+    try:
+        soc.bind((host, port))
+    except:
+        print("Bind failed.")
+
+    soc.listen(5)
+    print("Socket now listening")
+
+    
     while True:
-        data = connection.recv(2048)
-        reply = 'Server Says: ' + data.decode('utf-8')
-        if not data:
-            break
-        connection.sendall(str.encode(reply))
-    connection.close()
+        connection, address = soc.accept()
+        ip, port = str(address[0]), str(address[1])
+        print("Connected with " + ip + ":" + port)
 
-while True:
-    Client, address = ServerSocket.accept()
-    print('Connected to: ' + address[0] + ':' + str(address[1]))
-    start_new_thread(threaded_client, (Client, ))
-    ThreadCount += 1
-    print('Thread Number: ' + str(ThreadCount))
-ServerSocket.close()
+        try:
+            Thread(target=client_thread, args=(connection, ip, port)).start()
+        except:
+            print("Thread did not start.")
+            traceback.print_exc()
+            soc.close()
+
+
+def client_thread(connection, ip, port, max_buffer_size = 1024):
+
+    while True:
+        client_input = get_input(connection, max_buffer_size)
+
+        if client_input == "n":
+            print("Client avslutter")
+            connection.close()
+            print("Connection " + ip + ":" + port + " closed")
+            break
+
+
+def get_input(connection, max_buffer_size):
+    client_input = connection.recv(max_buffer_size)
+    decoded_input = client_input.decode("utf8")
+    result = print_input(decoded_input)
+    return result
+
+
+def print_input(input_str):
+    return str(input_str).upper()
+
+if __name__ == "__main__":
+    serverStart()

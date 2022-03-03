@@ -1,6 +1,4 @@
 import socket
-import os
-from _thread import *
 
 from cgitb import reset
 from rich import print

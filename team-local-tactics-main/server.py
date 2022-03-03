@@ -1,16 +1,6 @@
 from multiprocessing import connection
 import socket
-import traceback
 from threading import Thread
-
-from cgitb import reset
-from rich import print
-from rich.prompt import Prompt
-from rich.table import Table
-
-from champlistloader import load_some_champs
-from core import Champion, Match, Shape, Team
-
 
 
 def serverStart():
@@ -42,7 +32,6 @@ def start_server():
             Thread(target=client_thread, args=(connection, ip, port)).start()
         except:
             print("Thread did not start.")
-            traceback.print_exc()
             soc.close()
 
 

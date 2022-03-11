@@ -1,6 +1,4 @@
-from multiprocessing import connection
 import socket
-from sqlite3 import connect
 from rich import print
 from rich.table import Table
 import json

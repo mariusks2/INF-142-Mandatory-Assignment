@@ -101,7 +101,6 @@ def client_start():
             jsonTuple1 = json.dumps(pickTuple1).encode() #json encode to send a tuple. makes it a json string
             client_socket.send(jsonTuple1) #sends the json string
         elif (num == "2"): #if connection 2, player 2
-            print("help")
             intro(champs) #plays intro, takes champs which is string of all the champs
             print("Waiting for player 1 to send input")
             p1 = client_socket.recv(4096).decode() #recieves what player 1 chose

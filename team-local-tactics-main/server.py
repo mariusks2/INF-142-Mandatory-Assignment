@@ -1,5 +1,3 @@
-from codecs import ignore_errors
-from http import server
 import socket
 import threading
 from rich import print

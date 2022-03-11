@@ -1,14 +1,11 @@
 import socket
-
-from cgitb import reset
 from rich import print
-from rich.prompt import Prompt
 from rich.table import Table
+import json
+from rich.prompt import Prompt
+from core import Champion
 
-from champlistloader import load_some_champs
-from core import Champion, Match, Shape, Team
-
-
+#taken from team_local_tactics
 def print_available_champs(champions: dict[Champion]) -> None:
 
     # Create a table containing available champions
@@ -24,15 +21,13 @@ def print_available_champs(champions: dict[Champion]) -> None:
     # Populate the table
     for champion in champions.values():
         available_champs.add_row(*champion.str_tuple)
-
     print(available_champs)
-
-
+#taken from team_local_tactics
 def input_champion(prompt: str,
                    color: str,
                    champions: dict[Champion],
                    player1: list[str],
-                   player2: list[str]) -> None:
+                   player2: list[str]):
 
     # Prompt the player to choose a champion and provide the reason why
     # certain champion cannot be selected
@@ -47,101 +42,85 @@ def input_champion(prompt: str,
             case _:
                 player1.append(name)
                 break
-
-
-def print_match_summary(match: Match) -> None:
-
-    EMOJI = {
-        Shape.ROCK: ':raised_fist-emoji:',
-        Shape.PAPER: ':raised_hand-emoji:',
-        Shape.SCISSORS: ':victory_hand-emoji:'
-    }
-
-    # For each round print a table with the results
-    for index, round in enumerate(match.rounds):
-
-        # Create a table containing the results of the round
-        round_summary = Table(title=f'Round {index+1}')
-
-        # Add columns for each team
-        round_summary.add_column("Red",
-                                 style="red",
-                                 no_wrap=True)
-        round_summary.add_column("Blue",
-                                 style="blue",
-                                 no_wrap=True)
-
-        # Populate the table
-        for key in round:
-            red, blue = key.split(', ')
-            round_summary.add_row(f'{red} {EMOJI[round[key].red]}',
-                                  f'{blue} {EMOJI[round[key].blue]}')
-        print(round_summary)
-        print('\n')
-
-    # Print the score
-    red_score, blue_score = match.score
-    print(f'Red: {red_score}\n'
-          f'Blue: {blue_score}')
-
-    # Print the winner
-    if red_score > blue_score:
-        print('\n[red]Red victory! :grin:')
-    elif red_score < blue_score:
-        print('\n[blue]Blue victory! :grin:')
-    else:
-        print('\nDraw :expressionless:')
-
-
-def main() -> None:
-
+    return player1 
+#taken from team_local_tactics. format_champions(champs) takes a string of champs, into format_champions()
+def intro(champs):
     print('\n'
           'Welcome to [bold yellow]Team Local Tactics[/bold yellow]!'
           '\n'
           'Each player choose a champion each time.'
           '\n')
 
-    champions = load_some_champs()
+    champions = format_champions(champs)
     print_available_champs(champions)
     print('\n')
-
+#runs the input for player1, red as color
+def player1Game(num, listofchamps, champs):
     player1 = []
-    player2 = []
+    champions = format_champions(champs)
 
-    # Champion selection
-    for _ in range(2):
-        input_champion('Player 1', 'red', champions, player1, player2)
-        input_champion('Player 2', 'blue', champions, player2, player1)
+    for i in range(2):
+        player1 = input_champion('Player '+num, 'red', champions, player1, listofchamps)
+    return player1
+#runs the input for player2, blue as color
+def player2Game(num, listofchamps, champs):
+    player1 = []
+    champions = format_champions(champs)
 
-    print('\n')
+    for i in range(2):
+        player1 = input_champion('Player '+num, 'blue', champions, player1, listofchamps)
+    return player1
+#takes a string of champions and turns it into a dict with _parse_champ
+def format_champions(champions) -> dict[str, Champion]:
+    champions_dict = {}
+    for line in champions.split("\n"):
+        champ = _parse_champ(line)
+        champions_dict[champ.name] = champ
+    return (champions_dict)
+#takes string and makes it into a Champion
+def _parse_champ(champ_text: str) -> Champion:
+    name, rock, paper, scissors = champ_text.split(sep=',')
+    return Champion(name, float(rock), float(paper), float(scissors))
 
-    # Match
-    match = Match(
-        Team([champions[name] for name in player1]),
-        Team([champions[name] for name in player2])
-    )
-    match.play()
-
-    # Print a summary
-    print_match_summary(match)
-
-
-def startClient():
-    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    host = "127.0.0.1"
-    port = 5550
-
-    try:
-        soc.connect((host, port))
-    except:
-        print("Connection error")
-
+#client start, acts as clients
+def client_start():
+    host = "127.0.0.1"  #localhost
+    port = 5550  #port
+    client_socket = socket.socket() #creates socket named client_socket
+    client_socket.connect((host, port))  #connect to the server on localhost and port 5550
     while True:
-        main()
-        soc.sendall("hallo".encode("utf-8"))
-        avslutt= input("Fortsette? (y/n) ")
-        if avslutt == "n":
-            break
+        champion_pick = []  #list of champions chosen
+        num = client_socket.recv(4096).decode() #recieves number
+        champs = client_socket.recv(4096).decode() #recieves champs from server, that got them from database
+        if (num == "1"): #if client is first, player 1
+            intro(champs) #plays intro, takes champs which is string of all the champs
+            print("Please select 2 champions")
+            champion_pick = player1Game("1", champion_pick, champs) #uses player1 game to list the chosen champions
+            print("Waiting for player 2 to send input")
+            pickTuple1 = {"P1":champion_pick[0], "P2":champion_pick[1]} #tuple, chosen champions
+            jsonTuple1 = json.dumps(pickTuple1).encode() #json encode to send a tuple. makes it a json string
+            client_socket.send(jsonTuple1) #sends the json string
+        elif (num == "2"): #if connection 2, player 2
+            print("help")
+            intro(champs) #plays intro, takes champs which is string of all the champs
+            print("Waiting for player 1 to send input")
+            p1 = client_socket.recv(4096).decode() #recieves what player 1 chose
+            #print("Player 1 chose: "+ p1) unfair to show player 2 what player1 chose
+            s1 = json.loads(p1) #using json.loads to make it appendable below.
+            
+            # List of player 1 champions
+            player1Champs = []
+            player1Champs.append(s1['P1'])
+            player1Champs.append(s1['P2'])
+
+            champion_pick = player2Game("2", player1Champs, champs) #if champion is in player1Champs, cant be chosen. process done in input_champion
+            pickTuple2 = {"P1":champion_pick[0], "P2":champion_pick[1]}  #tuple for player 2
+            jsonTuple2 = json.dumps(pickTuple2).encode() #json encode to send a tuple. makes it a json string
+            client_socket.send(jsonTuple2) #sends the json string
+            player2choice = client_socket.recv(4096).decode() #recieves what champions player2 chose
+            
+        result = client_socket.recv(4096).decode() #recieves result from server
+        print(result) #prints result
 
 if __name__ == "__main__":
-    startClient()
+    client_start()

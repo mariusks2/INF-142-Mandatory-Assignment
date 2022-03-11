@@ -1,6 +1,8 @@
+from codecs import ignore_errors
+from http import server
 import socket
+import threading
 from rich import print
-from _thread import *
 import json
 from core import Champion, Match, Shape, Team
 from rich import print
@@ -10,17 +12,11 @@ ServerSocket = socket.socket() #makes socket named ServerSocket
 host = "127.0.0.1"
 port = 5550
 ServerSocket.bind((host, port))
-print('Server is waiting for connections')
-ServerSocket.listen(2) #listens for 2 clients
 
 DBhost = "127.0.0.1"
 DBport = 6789 #different port for DB
 DB_socket = socket.socket() #makes socket named DB_socket
 DB_socket.connect((DBhost, DBport))  #connect to the database
-
-antall = 0 #antall connections
-champions = [] #list of champions chosen
-connections = [] #list of connections
 
 def format_champions(champions) -> dict[str, Champion]: #taken from champlistloader
     champions_dict = {}
@@ -119,23 +115,23 @@ def main(a, b, c, d):
     return (match)
 #recievs champions from DB
 championsDB = DB_socket.recv(4096).decode()
-
 #sends champions to client
 def champs(connection):
     connection.send(championsDB.encode())
 
+champions = [] #list of champions chosen
+connections = [] #list of connections
 #server plays the game
-def server_game(connection):
-    connection.send(str(antall).encode()) #sends connection number
-    champs(connection) #runs champs
+def server_game(connection, address):
     while True:
+        connection.send(str(threading.active_count()-1).encode()) #sends connection number
+        champs(connection) #runs champs
         connections.append(connection) #list of each connection
         championsChosen = connection.recv(4096).decode()
         p1 = json.loads(championsChosen) #using json.loads to make it appendable below.
         champions.append(p1['P1']) #list with champions picked
         champions.append(p1['P2'])
-        
-        if len(connections) >=2: #if 2 or more connections send champions to client for comparison
+        if len(connections) >=2: #if 2 or more connections send them to client
             s1 = json.dumps(p1).encode()
             connections[1].send(s1)
         
@@ -156,14 +152,19 @@ def server_game(connection):
             result_dict.update({"Blue Score": result[2]}) #blue score
             data = json.dumps(result_dict).encode() #json to make it into json string
             DB_socket.send(data) #sends to DB
+        break #stops loop so client1 doesnt skip through and restarts
+        
+    
+        
+def start_server(): #starts server
+    ServerSocket.listen() #listens for connections
+    print("Server waiting for connections")
+    while True: 
+        client, address = ServerSocket.accept()
+        print("Connection established with: " + address[0] + ":" + str(address[1]))
+        thread = threading.Thread(target=server_game, args=(client, address)) #threads with client
+        thread.start() #starts thread
+        print(f"Connected to {threading.active_count() - 1} clients") #-1 cause it shows 2 as the first one
 
-
-
-
-# Multithread
-while True:
-    client, address = ServerSocket.accept()
-    print("Connection established with: " + address[0] + ":" + str(address[1]))
-    start_new_thread(server_game, (client, ))
-    antall += 1
-    print('Connections: ' + str(antall))
+if __name__ == "__main__":
+    start_server()

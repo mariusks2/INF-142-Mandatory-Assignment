@@ -1,4 +1,6 @@
+from multiprocessing import connection
 import socket
+from sqlite3 import connect
 from rich import print
 from rich.table import Table
 import json
@@ -82,17 +84,18 @@ def _parse_champ(champ_text: str) -> Champion:
     name, rock, paper, scissors = champ_text.split(sep=',')
     return Champion(name, float(rock), float(paper), float(scissors))
 
+host = "127.0.0.1"  #localhost
+port = 5550  #port
+client_socket = socket.socket() #creates socket named client_socket
+client_socket.connect((host, port))  #connect to the server on localhost and port 5550
+
 #client start, acts as clients
 def client_start():
-    host = "127.0.0.1"  #localhost
-    port = 5550  #port
-    client_socket = socket.socket() #creates socket named client_socket
-    client_socket.connect((host, port))  #connect to the server on localhost and port 5550
     while True:
         champion_pick = []  #list of champions chosen
         num = client_socket.recv(4096).decode() #recieves number
         champs = client_socket.recv(4096).decode() #recieves champs from server, that got them from database
-        if (num == "1"): #if client is first, player 1
+        if (int(num) % 2 == 1): #if client is first, player 1
             intro(champs) #plays intro, takes champs which is string of all the champs
             print("Please select 2 champions")
             champion_pick = player1Game("1", champion_pick, champs) #uses player1 game to list the chosen champions
@@ -100,7 +103,7 @@ def client_start():
             pickTuple1 = {"P1":champion_pick[0], "P2":champion_pick[1]} #tuple, chosen champions
             jsonTuple1 = json.dumps(pickTuple1).encode() #json encode to send a tuple. makes it a json string
             client_socket.send(jsonTuple1) #sends the json string
-        elif (num == "2"): #if connection 2, player 2
+        elif (int(num) % 2 == 0): #if connection 2, player 2
             intro(champs) #plays intro, takes champs which is string of all the champs
             print("Waiting for player 1 to send input")
             p1 = client_socket.recv(4096).decode() #recieves what player 1 chose
@@ -116,10 +119,15 @@ def client_start():
             pickTuple2 = {"P1":champion_pick[0], "P2":champion_pick[1]}  #tuple for player 2
             jsonTuple2 = json.dumps(pickTuple2).encode() #json encode to send a tuple. makes it a json string
             client_socket.send(jsonTuple2) #sends the json string
-            player2choice = client_socket.recv(4096).decode() #recieves what champions player2 chose
+            player2choice = client_socket.recv(4096).decode() #recieves what champions player2 chose(above) not needed
             
         result = client_socket.recv(4096).decode() #recieves result from server
         print(result) #prints result
+        print('\n')
+        print("Thank you for playing")
+        print('\n')
+        break #breaks so client can close when game is finished
+    client_socket.close
 
 if __name__ == "__main__":
     client_start()

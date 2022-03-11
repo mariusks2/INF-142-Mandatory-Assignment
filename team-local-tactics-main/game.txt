@@ -8,3 +8,11 @@
 {"Result": "Blue Victory", "Red Score": 1, "Blue Score": 5}
 {"Result": "Draw", "Red Score": 3, "Blue Score": 3}
 {"Result": "Red Victory", "Red Score": 4, "Blue Score": 2}
+{"Result": "Blue Victory", "Red Score": 2, "Blue Score": 4}
+{"Result": "Draw", "Red Score": 3, "Blue Score": 3}
+{"Result": "Blue Victory", "Red Score": 2, "Blue Score": 4}
+{"Result": "Draw", "Red Score": 3, "Blue Score": 3}
+{"Result": "Blue Victory", "Red Score": 2, "Blue Score": 4}
+{"Result": "Red Victory", "Red Score": 4, "Blue Score": 2}
+{"Result": "Red Victory", "Red Score": 4, "Blue Score": 2}
+{"Result": "Draw", "Red Score": 3, "Blue Score": 3}

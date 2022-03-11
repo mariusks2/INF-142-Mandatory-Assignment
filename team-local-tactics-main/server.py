@@ -135,7 +135,7 @@ def server_game(connection):
         champions.append(p1['P1']) #list with champions picked
         champions.append(p1['P2'])
         
-        if len(connections) >=2: #if 2 champions have been chosen, send them to client
+        if len(connections) >=2: #if 2 or more connections send champions to client for comparison
             s1 = json.dumps(p1).encode()
             connections[1].send(s1)
         

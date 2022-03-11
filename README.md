@@ -6,4 +6,4 @@ First, start the database.
 Then, start the server.
 Last, you start two clients.
 You will play against the other client.
-The match will be saved in the database.
+The match will be saved in the game.txt
